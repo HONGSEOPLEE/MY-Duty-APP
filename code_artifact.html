@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>마이듀티 & 투두 - 교대근무 매니저</title>
+<!-- Mobile Standalone Web App (PWA) Meta Tags -->
+<meta name="theme-color" content="#FAF8F5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="마이듀티">
+<link id="pwaManifestLink" rel="manifest">
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Font Awesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Pretendard Font -->
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+<style>
+body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    background-color: #EFECE6;
+    color: #3D3A35;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #DFD9CE;
+    border-radius: 10px;
+}
+.fade-in {
+    animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.pastel-checkbox {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #D6D1C7;
+    border-radius: 0.45rem;
+    display: grid;
+    place-content: center;
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+    background-color: #fff;
+    flex-shrink: 0;
+}
+.pastel-checkbox::before {
+    content: "\f00c";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 0.7rem;
+    color: white;
+    transform: scale(0);
+    transition: 0.15s transform ease-in-out;
+}
+.pastel-checkbox:checked {
+    background-color: #A78BFA;
+    border-color: #A78BFA;
+}
+.pastel-checkbox:checked::before {
+    transform: scale(1);
+}
+</style>
+</head>
+<body class="min-h-screen flex justify-center bg-[#EFECE6]">
+
+<!-- Mobile App Container -->
+<div class="w-full max-w-md min-h-screen bg-[#FAF8F5] flex flex-col shadow-2xl relative overflow-x-hidden pb-28">
+
+    <!-- Top Header -->
+    <header class="px-4 pt-4 pb-2.5 flex items-center justify-between sticky top-0 bg-[#FAF8F5]/95 backdrop-blur-md z-20 border-b border-stone-200/50">
+        <div class="flex items-center space-x-1.5">
+            <button type="button" onclick="changeMonth(-1)" class="w-8 h-8 rounded-full bg-white shadow-sm border border-stone-200/70 flex items-center justify-center text-stone-600 active:scale-90 transition" title="이전 달">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <h1 id="currentMonthLabel" class="text-lg font-extrabold text-stone-800 tracking-tight px-1">
+                2026년 10월
+            </h1>
+            <button type="button" onclick="changeMonth(1)" class="w-8 h-8 rounded-full bg-white shadow-sm border border-stone-200/70 flex items-center justify-center text-stone-600 active:scale-90 transition" title="다음 달">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+            <button type="button" onclick="goToToday()" class="px-2.5 py-1 text-[11px] font-bold rounded-full bg-stone-200/80 text-stone-700 active:scale-95 transition">
+                오늘
+            </button>
+        </div>
+
+        <div class="flex items-center space-x-1">
+            <button type="button" id="quickModeBtn" onclick="toggleQuickMode()" class="px-2 py-1.5 rounded-full text-[11px] font-bold bg-violet-100 text-violet-700 border border-violet-200 shadow-sm flex items-center space-x-1 active:scale-95 transition">
+                <i class="fa-solid fa-hand-pointer text-[10px]"></i>
+                <span>빠른입력</span>
+            </button>
+            <button type="button" onclick="openPatternModal()" class="px-2 py-1.5 rounded-full text-[11px] font-bold bg-pink-100 text-pink-700 border border-pink-200 shadow-sm flex items-center space-x-1 active:scale-95 transition">
+                <i class="fa-solid fa-rotate text-[10px]"></i>
+                <span>3교대</span>
+            </button>
+            <button type="button" onclick="openTeamModal()" class="px-2 py-1.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm flex items-center space-x-1 active:scale-95 transition" title="동료 근무표 공유 및 비교">
+                <i class="fa-solid fa-users text-[10px]"></i>
+                <span>동료</span>
+            </button>
+            <button type="button" onclick="openSettingsModal()" class="w-8 h-8 rounded-full bg-white shadow-sm border border-stone-200/70 flex items-center justify-center text-stone-600 active:scale-95 transition" title="설정">
+                <i class="fa-solid fa-sliders text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Cloud Sync & Pinned Colleague Status Bar -->
+    <div class="px-4 pt-2 flex items-center justify-between text-[11px]">
+        <div id="cloudSyncBadge" class="flex items-center space-x-1.5 text-stone-400 font-semibold">
+            <span id="cloudSyncDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="cloudSyncText">기기 내 자동저장 활성화됨</span>
+        </div>
+        <div id="pinnedColleagueBanner" class="hidden flex items-center space-x-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200 font-bold">
+            <i class="fa-solid fa-user-check text-[10px]"></i>
+            <span id="pinnedColleagueName">비교 중</span>
+            <button type="button" onclick="togglePinColleague(null)" class="text-emerald-500 hover:text-emerald-800 ml-1">&times;</button>
+        </div>
+    </div>
+
+    <!-- Monthly Shift Summary Bar -->
+    <div class="px-4 mt-2">
+        <div id="monthlySummary" class="flex items-center justify-between bg-white px-3.5 py-2.5 rounded-2xl shadow-sm border border-stone-200/70 text-xs overflow-x-auto gap-2">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- Quick Shift Input Toolbar (Shown in Quick Mode) -->
+    <div id="quickInputBar" class="hidden px-4 mt-2.5 fade-in">
+        <div class="bg-violet-50/90 border border-violet-200 rounded-2xl p-3 shadow-sm space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-violet-800 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 날짜를 선택하고 근무를 누르세요
+                </span>
+                <label class="flex items-center space-x-1.5 text-xs text-violet-700 cursor-pointer">
+                    <input type="checkbox" id="autoAdvanceToggle" checked onchange="toggleAutoAdvance(this.checked)" class="rounded text-violet-500 focus:ring-0">
+                    <span>자동 다음날 이동</span>
+                </label>
+            </div>
+            <div id="quickShiftButtons" class="grid grid-cols-6 gap-1.5"></div>
+        </div>
+    </div>
+
+    <!-- Calendar Card -->
+    <div id="calendarCard" class="px-4 mt-3">
+        <div class="bg-white rounded-3xl p-3.5 shadow-sm border border-stone-200/70">
+            <div class="calendar-grid text-center text-[11px] font-semibold text-stone-400 pb-2 border-b border-stone-200/50">
+                <div class="text-rose-500 font-bold">일</div>
+                <div>월</div>
+                <div>화</div>
+                <div>수</div>
+                <div>목</div>
+                <div>금</div>
+                <div class="text-sky-500 font-bold">토</div>
+            </div>
+            <div id="calendarGrid" class="calendar-grid gap-y-1 pt-1.5"></div>
+        </div>
+    </div>
+
+    <!-- Selected Date Details & To-Do Section -->
+    <div class="px-4 mt-3 flex-1 flex flex-col">
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-stone-200/70 flex-1 flex flex-col">
+            
+            <div class="flex items-center justify-between pb-3 mb-2.5 border-b border-stone-200/60">
+                <div>
+                    <div class="flex items-center flex-wrap gap-1.5">
+                        <h2 id="selectedDateTitle" class="text-base font-extrabold text-stone-800">10월 29일 (목)</h2>
+                        <span id="selectedDateRelative" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">오늘</span>
+                        <span id="selectedHolidayBadge" class="hidden text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 border border-rose-200"></span>
+                    </div>
+                    <p id="selectedShiftTime" class="text-xs text-stone-400 mt-0.5 font-medium">근무 일정이 없습니다</p>
+                </div>
+
+                <div class="relative">
+                    <button type="button" onclick="toggleDayShiftMenu()" id="selectedShiftBadge" class="px-3 py-2 rounded-xl text-xs font-extrabold border flex items-center space-x-1.5 active:scale-95 transition">
+                        <span>근무 선택</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-70"></i>
+                    </button>
+                    
+                    <div id="dayShiftPopover" class="hidden absolute right-0 mt-1.5 w-48 bg-white rounded-2xl shadow-xl border border-stone-200 p-1.5 z-30 fade-in">
+                        <div id="popoverShiftList" class="space-y-1 max-h-52 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Events Bar -->
+            <div class="mb-3">
+                <div class="flex items-center justify-between gap-2">
+                    <div id="selectedDateEventList" class="flex items-center flex-wrap gap-1.5 flex-1"></div>
+                    <button type="button" onclick="toggleEventForm()" class="px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-rose-50 text-rose-600 border border-rose-200 flex items-center space-x-1 active:scale-95 transition flex-shrink-0">
+                        <i class="fa-solid fa-calendar-plus text-[10px]"></i>
+                        <span>기념일 추가</span>
+                    </button>
+                </div>
+
+                <div id="eventFormBox" class="hidden mt-2 p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200/90 fade-in">
+                    <form onsubmit="handleAddEvent(event)" class="space-y-2">
+                        <div class="flex items-center space-x-1.5">
+                            <input type="text" id="eventInput" maxlength="15" placeholder="기념일 입력 (예: 월급날 💰)" class="flex-1 px-3 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-rose-400 font-semibold">
+                            <button type="submit" class="px-3.5 py-2 rounded-xl bg-rose-500 text-white text-xs font-extrabold active:scale-95 transition">등록</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- To-Do Input & List -->
+            <form onsubmit="handleAddTodo(event)" class="flex items-center space-x-2 mb-3">
+                <div class="flex-1 relative">
+                    <input type="text" id="todoInput" placeholder="오늘의 할 일을 입력하세요..." class="w-full pl-3.5 pr-4 py-2.5 text-xs bg-[#FAF8F5] border border-stone-200/90 rounded-2xl focus:outline-none focus:border-violet-400 focus:bg-white transition placeholder:text-stone-400 font-medium">
+                </div>
+                <button type="submit" id="todoSubmitBtn" class="w-10 h-10 rounded-2xl bg-violet-600 text-white hover:bg-violet-700 flex items-center justify-center shadow-sm active:scale-95 transition flex-shrink-0">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                </button>
+            </form>
+
+            <div class="flex items-center justify-between mb-2 px-1">
+                <span class="text-xs font-extrabold text-stone-600">오늘의 할 일 (<span id="dailyTodoCount">0</span>개 남음)</span>
+            </div>
+            <div id="todoListContainer" class="space-y-2 flex-1 overflow-y-auto max-h-52 pr-1"></div>
+
+        </div>
+    </div>
+
+    <!-- Bottom Action Bar (Local Backup & App Install) -->
+    <footer class="px-4 mt-3">
+        <div class="bg-white rounded-3xl p-3 border border-stone-200/80 shadow-sm space-y-2">
+            <div class="flex items-center justify-between px-1">
+                <span class="text-[11px] font-extrabold text-stone-600 flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-heart text-violet-500"></i>
+                    <span>핸드폰 로컬 저장 & 앱 설치</span>
+                </span>
+                <span id="localAutoSaveBadge" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">자동저장 켜짐</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <button type="button" onclick="openBackupModal('export')" class="py-2.5 px-2 rounded-2xl bg-violet-50 hover:bg-violet-100 border border-violet-200/80 flex flex-col items-center justify-center gap-1 active:scale-95 transition">
+                    <i class="fa-solid fa-file-arrow-down text-violet-600 text-sm"></i>
+                    <span class="text-[11px] font-extrabold text-violet-900">내 폰에 저장</span>
+                </button>
+                <button type="button" onclick="openBackupModal('import')" class="py-2.5 px-2 rounded-2xl bg-pink-50 hover:bg-pink-100 border border-pink-200/80 flex flex-col items-center justify-center gap-1 active:scale-95 transition">
+                    <i class="fa-solid fa-folder-open text-pink-600 text-sm"></i>
+                    <span class="text-[11px] font-extrabold text-pink-900">파일 불러오기</span>
+                </button>
+                <button type="button" onclick="openAppGuideModal()" class="py-2.5 px-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 flex flex-col items-center justify-center gap-1 active:scale-95 transition">
+                    <i class="fa-solid fa-mobile-screen-button text-emerald-600 text-sm"></i>
+                    <span class="text-[11px] font-extrabold text-emerald-900">앱으로 설치</span>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================
+         MODAL 0: Reliable Backup / Restore Modal
+         ========================================== -->
+    <div id="backupModal" class="hidden fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl border border-stone-100 fade-in max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-stone-100">
+                <div>
+                    <h3 class="text-base font-extrabold text-stone-800">💾 내 폰에 데이터 백업 및 복원</h3>
+                    <p class="text-[11px] text-stone-400">인앱 미리보기 환경에서도 100% 안전하게 보관합니다</p>
+                </div>
+                <button type="button" onclick="closeBackupModal()" class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-1.5 bg-[#FAF8F5] p-1 rounded-2xl border border-stone-200/70 mb-3">
+                <button type="button" id="tabBackupExport" onclick="switchBackupTab('export')" class="py-2 rounded-xl text-xs font-extrabold bg-white text-violet-700 shadow-2xs transition">백업하기</button>
+                <button type="button" id="tabBackupImport" onclick="switchBackupTab('import')" class="py-2 rounded-xl text-xs font-bold text-stone-500 transition">복원하기</button>
+            </div>
+
+            <div id="backupExportSection" class="space-y-3 overflow-y-auto pr-1 flex-1">
+                <div class="p-3.5 rounded-2xl bg-[#FAF8F5] border border-stone-200/90 space-y-2">
+                    <span class="text-xs font-extrabold text-stone-800 block">백업 코드 1초 복사 (가장 확실함)</span>
+                    <p class="text-[11px] text-stone-500">버튼을 눌러 복사한 뒤 메모장이나 카카오톡에 붙여넣어 보관하세요.</p>
+                    <textarea id="exportCodeTextarea" readonly rows="3" class="w-full p-2 rounded-xl bg-white border border-stone-200 text-[10px] font-mono text-stone-600 focus:outline-none select-all"></textarea>
+                    <button type="button" onclick="copyBackupCode()" class="w-full py-2.5 rounded-xl bg-violet-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-regular fa-copy"></i> 전체 백업 코드 복사하기
+                    </button>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-[#FAF8F5] border border-stone-200/90 space-y-2">
+                    <span class="text-xs font-extrabold text-stone-800 block">파일로 다운로드</span>
+                    <button type="button" onclick="exportLocalFile()" class="w-full py-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 text-xs font-extrabold active:scale-95 transition flex items-center justify-center gap-1.5 shadow-2xs">
+                        <i class="fa-solid fa-download text-violet-500"></i> .json 백업 파일 다운로드
+                    </button>
+                </div>
+            </div>
+
+            <div id="backupImportSection" class="hidden space-y-3 overflow-y-auto pr-1 flex-1">
+                <div class="p-3.5 rounded-2xl bg-[#FAF8F5] border border-stone-200/90 space-y-2">
+                    <span class="text-xs font-extrabold text-stone-800 block">복사해둔 백업 코드 붙여넣기</span>
+                    <textarea id="importCodeTextarea" rows="4" placeholder="여기에 백업 코드를 붙여넣으세요" class="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs font-mono text-stone-700 focus:outline-none focus:border-violet-400"></textarea>
+                    <button type="button" onclick="restoreFromBackupCode()" class="w-full py-2.5 rounded-xl bg-violet-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition">
+                        붙여넣은 코드로 즉시 복원하기
+                    </button>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-[#FAF8F5] border border-stone-200/90 space-y-2">
+                    <span class="text-xs font-extrabold text-stone-800 block">백업 파일(.json) 선택하여 복원</span>
+                    <label class="w-full py-3 rounded-xl bg-white border border-dashed border-pink-300 text-pink-600 text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <span>내 폰에서 .json 파일 찾기</span>
+                        <input type="file" id="importFileInput" accept=".json,application/json" onchange="importLocalFile(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <button type="button" onclick="closeBackupModal()" class="w-full mt-3 py-2.5 rounded-xl bg-stone-100 text-stone-700 text-xs font-bold">닫기</button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 1: 3-Shift Weekly Pattern Auto-Generator
+         ========================================== -->
+    <div id="patternModal" class="hidden fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl border border-stone-100 fade-in max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-stone-100">
+                <div>
+                    <h3 class="text-base font-extrabold text-stone-800">3교대 반복 패턴 자동완성</h3>
+                    <p class="text-[11px] text-stone-400">일주일 단위 3교대 패턴을 지정된 기간에 한 번에 채웁니다</p>
+                </div>
+                <button type="button" onclick="closePatternModal()" class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto pr-1 flex-1 space-y-3.5">
+                <div class="p-3 rounded-2xl bg-violet-50 border border-violet-100 text-xs text-violet-900 leading-relaxed">
+                    <i class="fa-solid fa-circle-info mr-1 text-violet-500"></i>
+                    <b>3교대 주간 반복:</b> 1주차, 2주차, 3주차에 들어갈 근무 유형을 선택하면 일주일씩 순환하며 달력을 자동으로 채워줍니다.
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-bold text-stone-600 mb-1">1주차 근무</label>
+                        <select id="week1ShiftSelect" class="w-full p-2 rounded-xl border border-stone-200 bg-[#FAF8F5] text-xs font-bold text-stone-700"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-stone-600 mb-1">2주차 근무</label>
+                        <select id="week2ShiftSelect" class="w-full p-2 rounded-xl border border-stone-200 bg-[#FAF8F5] text-xs font-bold text-stone-700"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-stone-600 mb-1">3주차 근무</label>
+                        <select id="week3ShiftSelect" class="w-full p-2 rounded-xl border border-stone-200 bg-[#FAF8F5] text-xs font-bold text-stone-700"></select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-stone-600 mb-1.5">주말(토·일) 처리 방식</label>
+                    <select id="weeklyRuleSelect" class="w-full p-2.5 rounded-xl border border-stone-200 bg-[#FAF8F5] text-xs font-semibold text-stone-700">
+                        <option value="mon_fri_off">월~금 동일근무 (5일) + 주말 오프(Off)</option>
+                        <option value="mon_sat_off">월~토 동일근무 (6일) + 일요일 오프(Off)</option>
+                        <option value="all_7_days">월~일 7일 내내 동일근무 연속</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 border-t border-stone-100 space-y-2.5">
+                    <label class="block text-xs font-extrabold text-stone-700">적용할 기간 설정</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="block text-[10px] font-semibold text-stone-400 mb-1">시작일</span>
+                            <input type="date" id="patternStartDate" class="w-full p-2 rounded-xl border border-stone-200 bg-[#FAF8F5] text-xs font-bold text-stone-700">
+                        </div>
+                        <div>
+                            <span class="block text-[10px] font-semibold text-stone-400 mb-1">종료일</span>
+                            <input type="date" id="patternEndDate" class="w-full p-2 rounded-xl border border-stone-200 bg-[#FAF8F5] text-xs font-bold text-stone-700">
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 pt-1">
+                        <span class="text-[11px] text-stone-400">빠른선택:</span>
+                        <button type="button" onclick="setPatternRangeMonths(1)" class="px-2.5 py-1 rounded-lg bg-stone-100 text-[11px] font-semibold text-stone-600">1개월</button>
+                        <button type="button" onclick="setPatternRangeMonths(3)" class="px-2.5 py-1 rounded-lg bg-stone-100 text-[11px] font-semibold text-stone-600">3개월</button>
+                        <button type="button" onclick="setPatternRangeMonths(6)" class="px-2.5 py-1 rounded-lg bg-stone-100 text-[11px] font-semibold text-stone-600">6개월</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 mt-3 border-t border-stone-100 flex gap-2">
+                <button type="button" onclick="closePatternModal()" class="w-1/3 py-2.5 rounded-xl text-xs font-bold bg-stone-100 text-stone-600">취소</button>
+                <button type="button" onclick="applyShiftPattern()" class="w-2/3 py-2.5 rounded-xl text-xs font-extrabold bg-violet-600 text-white shadow-sm active:scale-95 transition">
+                    달력에 자동 완성 적용
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 2: Shift Types Editor & Settings
+         ========================================== -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl border border-stone-100 fade-in max-h-[92vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-stone-100 flex-shrink-0">
+                <div>
+                    <h3 class="text-base font-extrabold text-stone-800">근무 유형 추가 및 편집</h3>
+                    <p class="text-[11px] text-stone-400">10가지 이상의 근무 조건을 자유롭게 추가하거나 수정하세요</p>
+                </div>
+                <button type="button" onclick="closeSettingsModal()" class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200/90 mb-3 flex-shrink-0">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-extrabold text-violet-800">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> 근무 유형 등록/수정
+                    </span>
+                    <button type="button" onclick="resetShiftTypeForm()" class="text-[11px] text-stone-400 font-semibold">새로 입력</button>
+                </div>
+                <form onsubmit="handleSaveShiftType(event)" class="space-y-2">
+                    <input type="hidden" id="editShiftOriginalCode" value="">
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <input type="text" id="shiftShortInput" maxlength="4" required placeholder="약칭 (예: D)" class="px-2.5 py-1.5 text-xs bg-white border border-stone-200 rounded-xl font-bold focus:outline-none focus:border-violet-400">
+                        <input type="text" id="shiftNameInput" maxlength="15" required placeholder="근무명 (예: 데이)" class="col-span-2 px-2.5 py-1.5 text-xs bg-white border border-stone-200 rounded-xl font-semibold focus:outline-none focus:border-violet-400">
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <input type="text" id="shiftTimeInput" maxlength="20" required placeholder="시간 (07:00-15:30)" class="col-span-2 px-2.5 py-1.5 text-xs bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-violet-400">
+                        <select id="shiftThemeInput" class="px-2 py-1.5 text-xs bg-white border border-stone-200 rounded-xl font-bold text-stone-700"></select>
+                    </div>
+                    <button type="submit" class="w-full py-2 rounded-xl bg-violet-600 text-white text-xs font-extrabold active:scale-95 transition">
+                        + 근무 유형 저장하기
+                    </button>
+                </form>
+            </div>
+
+            <div class="flex items-center justify-between mb-1.5 px-1">
+                <span class="text-xs font-bold text-stone-600">등록된 근무 유형 (<span id="shiftTypeCountLabel">0</span>개)</span>
+                <span class="text-[10px] text-stone-400">항목을 누르면 수정됩니다</span>
+            </div>
+            <div id="shiftSettingsList" class="space-y-2 overflow-y-auto pr-1 flex-1 mb-3"></div>
+
+            <div class="pt-2 border-t border-stone-100 flex items-center justify-between gap-2 flex-shrink-0">
+                <button type="button" onclick="openResetConfirmModal()" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold">전체 초기화</button>
+                <button type="button" onclick="closeSettingsModal()" class="flex-1 py-2 rounded-xl text-xs font-bold bg-stone-100 text-stone-700">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 3: PWA App Install Guide
+         ========================================== -->
+    <div id="appGuideModal" class="hidden fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl border border-stone-100 fade-in space-y-3.5 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+                <h3 class="text-base font-extrabold text-stone-800">📱 스마트폰 앱으로 설치하기</h3>
+                <button type="button" onclick="closeAppGuideModal()" class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <div id="pwaDirectInstallBox" class="p-3.5 rounded-2xl bg-violet-50 border border-violet-200 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold text-violet-900">🚀 원클릭 바로 설치</span>
+                    <span id="pwaInstallStatusTag" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-200 text-violet-800">지원 브라우저 전용</span>
+                </div>
+                <button type="button" id="pwaInstallTriggerBtn" onclick="triggerNativePwaInstall()" class="w-full py-2.5 rounded-xl bg-violet-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> 홈 화면에 앱 설치하기
+                </button>
+            </div>
+
+            <div class="space-y-2.5 text-xs text-stone-600 leading-relaxed">
+                <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950">
+                    <b class="text-amber-900 block mb-1">💡 크롬(Chrome)이나 사파리(Safari)로 여세요!</b>
+                    우측 상단 <b>점 3개(⋯)</b> 메뉴를 눌러 <b>[브라우저에서 열기]</b>를 선택하시면 설치 버튼이 정상 작동합니다.
+                </div>
+                <div class="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200/70">
+                    <b class="text-stone-800 block mb-1">안드로이드 (Chrome)</b>
+                    메뉴(⋮) 터치 후 <b>[홈 화면에 추가]</b> 또는 <b>[앱 설치]</b>를 선택하세요.
+                </div>
+                <div class="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200/70">
+                    <b class="text-stone-800 block mb-1">아이폰 (Safari)</b>
+                    하단 공유 버튼<i class="fa-solid fa-arrow-up-from-bracket mx-1"></i>터치 후 <b>[홈 화면에 추가]</b>를 누르세요.
+                </div>
+            </div>
+            <button type="button" onclick="closeAppGuideModal()" class="w-full py-2.5 rounded-xl bg-stone-800 text-white text-xs font-extrabold">확인했어요</button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 4: Reset Confirmation Modal
+         ========================================== -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-xs rounded-3xl p-5 shadow-2xl border border-stone-100 fade-in text-center space-y-3">
+            <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-500 mx-auto flex items-center justify-center">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h4 class="text-sm font-extrabold text-stone-800">모든 데이터를 초기화할까요?</h4>
+            <p class="text-xs text-stone-500">입력된 근무 일정과 할 일이 초기 상태로 돌아갑니다.</p>
+            <div class="flex gap-2 pt-1">
+                <button type="button" onclick="closeResetConfirmModal()" class="flex-1 py-2 rounded-xl bg-stone-100 text-stone-600 text-xs font-bold">취소</button>
+                <button type="button" onclick="confirmResetAllData()" class="flex-1 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold">초기화</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 5: Colleague Sharing & Comparison Modal
+         ========================================== -->
+    <div id="teamModal" class="hidden fixed inset-0 bg-stone-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl border border-stone-100 fade-in max-h-[92vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-stone-100 flex-shrink-0">
+                <div>
+                    <h3 class="text-base font-extrabold text-stone-800">동료 근무표 공유 및 비교</h3>
+                    <p class="text-[11px] text-stone-400">내 근무표를 공유하고 동반 오프일을 확인합니다</p>
+                </div>
+                <button type="button" onclick="closeTeamModal()" class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto pr-1 flex-1 space-y-3.5">
+                <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+                    <span class="text-xs font-extrabold text-emerald-900 block">내 근무표 공유 켜기</span>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <input type="text" id="myNicknameInput" maxlength="12" placeholder="내 이름 (예: 김간호)" class="px-2.5 py-1.5 text-xs bg-white border border-emerald-200 rounded-xl font-bold">
+                        <input type="text" id="myTeamNameInput" maxlength="12" placeholder="소속 (예: 응급실 A조)" class="px-2.5 py-1.5 text-xs bg-white border border-emerald-200 rounded-xl font-semibold">
+                    </div>
+                    <button type="button" onclick="publishMyScheduleLocally()" class="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-extrabold active:scale-95 transition">
+                        근무표 공유 저장하기
+                    </button>
+                </div>
+
+                <div class="space-y-2">
+                    <span class="text-xs font-extrabold text-stone-700 block">등록된 동료 근무표 목록</span>
+                    <div id="colleaguesListContainer" class="space-y-2 max-h-48 overflow-y-auto pr-0.5"></div>
+                </div>
+
+                <div class="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200/80 space-y-2">
+                    <span class="text-xs font-extrabold text-stone-700 block">이번 달 동반 오프(휴무)일 확인</span>
+                    <div id="matchingOffDaysBox" class="text-xs text-stone-600">동료를 선택하면 겹치는 휴무일을 찾아드립니다.</div>
+                </div>
+            </div>
+
+            <div class="pt-3 mt-3 border-t border-stone-100 flex-shrink-0">
+                <button type="button" onclick="closeTeamModal()" class="w-full py-2 rounded-xl text-xs font-bold bg-stone-100 text-stone-700">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastBox" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-stone-900/90 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-lg z-50 transition-all duration-300 opacity-0 pointer-events-none">
+        알림 메시지
+    </div>
+</div>
+
+<script>
+// ==========================================
+// KOREAN PUBLIC HOLIDAYS (2025 - 2027)
+// ==========================================
+const KOREAN_HOLIDAYS = {
+    '2025-01-01': '신정', '2025-01-28': '설날 연휴', '2025-01-29': '설날', '2025-01-30': '설날 연휴',
+    '2025-03-01': '삼일절', '2025-03-03': '대체공휴일', '2025-05-05': '어린이날', '2025-05-06': '대체공휴일',
+    '2025-06-06': '현충일', '2025-08-15': '광복절', '2025-10-03': '개천절', '2025-10-05': '추석 연휴',
+    '2025-10-06': '추석', '2025-10-07': '추석 연휴', '2025-10-08': '대체공휴일', '2025-10-09': '한글날', '2025-12-25': '성탄절',
+    '2026-01-01': '신정', '2026-02-16': '설날 연휴', '2026-02-17': '설날', '2026-02-18': '설날 연휴',
+    '2026-03-01': '삼일절', '2026-03-02': '대체공휴일', '2026-05-05': '어린이날', '2026-05-24': '부처님오신날',
+    '2026-05-25': '대체공휴일', '2026-06-03': '지방선거일', '2026-06-06': '현충일', '2026-08-15': '광복절',
+    '2026-08-17': '대체공휴일', '2026-09-24': '추석 연휴', '2026-09-25': '추석', '2026-09-26': '추석 연휴',
+    '2026-10-03': '개천절', '2026-10-05': '대체공휴일', '2026-10-09': '한글날', '2026-12-25': '성탄절',
+    '2027-01-01': '신정', '2027-02-06': '설날 연휴', '2027-02-07': '설날', '2027-02-08': '설날 연휴',
+    '2027-02-09': '대체공휴일', '2027-03-01': '삼일절', '2027-05-05': '어린이날', '2027-05-13': '부처님오신날',
+    '2027-06-06': '현충일', '2027-08-15': '광복절', '2027-08-16': '대체공휴일', '2027-09-14': '추석 연휴',
+    '2027-09-15': '추석', '2027-09-16': '추석 연휴', '2027-10-03': '개천절', '2027-10-04': '대체공휴일',
+    '2027-10-09': '한글날', '2027-10-11': '대체공휴일', '2027-12-25': '성탄절'
+};
+
+const PASTEL_COLOR_THEMES = {
+    yellow: { label: '옐로우', bg: 'bg-[#FFF3C4]', text: 'text-[#8C6B1F]', border: 'border-[#F8E397]' },
+    pink:   { label: '핑크',   bg: 'bg-[#FFD8DF]', text: 'text-[#9B3B4E]', border: 'border-[#F9BFC9]' },
+    purple: { label: '퍼플',   bg: 'bg-[#E5DBFF]', text: 'text-[#583E9E]', border: 'border-[#D0BFFF]' },
+    green:  { label: '그린',   bg: 'bg-[#D3F9D8]', text: 'text-[#2B7A3B]', border: 'border-[#B2F2BB]' },
+    sky:    { label: '스카이', bg: 'bg-[#D0EBFF]', text: 'text-[#19649E]', border: 'border-[#A5D8FF]' },
+    peach:  { label: '피치',   bg: 'bg-[#FFE5D0]', text: 'text-[#9C4A1A]', border: 'border-[#FFC9A3]' },
+    mint:   { label: '민트',   bg: 'bg-[#C3FAE8]', text: 'text-[#136E56]', border: 'border-[#96F2D7]' },
+    indigo: { label: '인디고', bg: 'bg-[#DBE4FF]', text: 'text-[#364FC7]', border: 'border-[#BAC8FF]' },
+    rose:   { label: '로즈',   bg: 'bg-[#FFE3E3]', text: 'text-[#A61E4D]', border: 'border-[#FFC9C9]' },
+    lime:   { label: '라임',   bg: 'bg-[#E9FAC8]', text: 'text-[#4C6E14]', border: 'border-[#D8F5A2]' },
+    amber:  { label: '앰버',   bg: 'bg-[#FFEC99]', text: 'text-[#8A5A00]', border: 'border-[#FFE066]' },
+    slate:  { label: '그레이', bg: 'bg-[#E9ECEF]', text: 'text-[#495057]', border: 'border-[#DEE2E6]' }
+};
+
+const DEFAULT_SHIFT_TYPES = {
+    'D': { short: 'D',   name: '데이 (주간)',     time: '07:00 - 15:30', theme: 'yellow' },
+    'E': { short: 'E',   name: '이브닝 (오후)',   time: '15:00 - 23:30', theme: 'pink' },
+    'N': { short: 'N',   name: '나이트 (야간)',   time: '23:00 - 07:30', theme: 'purple' },
+    'O': { short: 'Off', name: '오프 (휴무)',     time: '편안한 휴식일', theme: 'green' },
+    'M': { short: 'M',   name: '미들 (중간근무)', time: '11:00 - 19:30', theme: 'peach' },
+    'V': { short: '휴가', name: '연차 / 정기휴가', time: '종일 휴가',     theme: 'sky' },
+    'H': { short: '반차', name: '오전/오후 반차',  time: '4시간 근무',    theme: 'mint' },
+    'T': { short: '교육', name: '직무 교육 / 세미나', time: '09:00 - 18:00', theme: 'indigo' },
+    'B': { short: '당직', name: '당직 / 대기근무', time: '비상 대기',     theme: 'rose' },
+    'P': { short: '파견', name: '외근 / 타부서지원', time: '09:00 - 18:00', theme: 'lime' },
+    'W': { short: '재택', name: '재택 / 원격근무', time: '09:00 - 18:00', theme: 'amber' },
+    'S': { short: '병가', name: '병가 / 공가',     time: '치료 및 회복',  theme: 'slate' }
+};
+
+const todayObj = new Date();
+const formatDateKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayKey = formatDateKey(todayObj);
+
+const state = {
+    currentYear: todayObj.getFullYear(),
+    currentMonth: todayObj.getMonth(),
+    selectedDate: todayKey,
+    isQuickInputMode: false,
+    autoAdvance: true,
+    editingTodoId: null,
+    pinnedColleagueId: null,
+    nickname: '',
+    teamName: '',
+    shiftTypes: JSON.parse(JSON.stringify(DEFAULT_SHIFT_TYPES)),
+    shifts: {},
+    events: {},
+    todos: {},
+    colleagues: []
+};
+
+const LOCAL_STORAGE_KEY = 'myduty_standalone_v4';
+
+function loadLocalStorage() {
+    try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (data.shiftTypes) state.shiftTypes = data.shiftTypes;
+        if (data.shifts) state.shifts = data.shifts;
+        if (data.events) state.events = data.events;
+        if (data.todos) state.todos = data.todos;
+        if (data.nickname) state.nickname = data.nickname;
+        if (data.teamName) state.teamName = data.teamName;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function saveLocalStorage() {
+    try {
+        const payload = {
+            version: 4,
+            shiftTypes: state.shiftTypes,
+            shifts: state.shifts,
+            events: state.events,
+            todos: state.todos,
+            nickname: state.nickname,
+            teamName: state.teamName
+        };
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
+        const badge = document.getElementById('localAutoSaveBadge');
+        if (badge) badge.textContent = '저장됨 ✓';
+    } catch (e) {}
+}
+
+function initStarterSample() {
+    if (loadLocalStorage()) return;
+    const base = new Date(todayObj.getFullYear(), todayObj.getMonth(), 1);
+    const sampleCycle = ['D','D','D','D','D','O','O','E','E','E','E','E','O','O','N','N','N','N','N','O','O'];
+    for (let i = 0; i < 21; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        state.shifts[formatDateKey(d)] = sampleCycle[i % sampleCycle.length];
+    }
+    state.events[todayKey] = [{ id: 'ev-1', text: '급여일 💰' }];
+    state.todos[todayKey] = [
+        { id: 'td-1', text: '근무표 확인하기', completed: true },
+        { id: 'td-2', text: '3교대 패턴 자동완성 해보기', completed: false }
+    ];
+    saveLocalStorage();
+}
+
+function showToast(msg) {
+    const box = document.getElementById('toastBox');
+    box.textContent = msg;
+    box.classList.remove('opacity-0', 'pointer-events-none');
+    box.classList.add('opacity-100');
+    setTimeout(() => {
+        box.classList.remove('opacity-100');
+        box.classList.add('opacity-0', 'pointer-events-none');
+    }, 2000);
+}
+
+// Render Functions
+function renderAll() {
+    document.getElementById('currentMonthLabel').textContent = `${state.currentYear}년 ${state.currentMonth + 1}월`;
+    renderMonthlySummary();
+    renderQuickInputBar();
+    renderCalendar();
+    renderSelectedDatePanel();
+    renderTodos();
+}
+
+function renderMonthlySummary() {
+    const summaryEl = document.getElementById('monthlySummary');
+    const counts = {};
+    Object.keys(state.shiftTypes).forEach(c => counts[c] = 0);
+    const prefix = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-`;
+    Object.keys(state.shifts).forEach(k => {
+        if (k.startsWith(prefix) && counts[state.shifts[k]] !== undefined) counts[state.shifts[k]]++;
+    });
+
+    summaryEl.innerHTML = Object.keys(state.shiftTypes).map((code) => {
+        const st = state.shiftTypes[code];
+        const theme = PASTEL_COLOR_THEMES[st.theme] || PASTEL_COLOR_THEMES.yellow;
+        return `
+            <div class="flex items-center space-x-1 flex-shrink-0">
+                <span class="w-5 h-5 rounded-md ${theme.bg} ${theme.text} font-extrabold flex items-center justify-center text-[10px] border ${theme.border}">${st.short.slice(0, 2)}</span>
+                <span class="text-stone-700 font-extrabold text-[11px]">${counts[code]}일</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderQuickInputBar() {
+    const bar = document.getElementById('quickInputBar');
+    const btnContainer = document.getElementById('quickShiftButtons');
+    if (!state.isQuickInputMode) {
+        bar.classList.add('hidden');
+        document.getElementById('quickModeBtn').className = "px-2 py-1.5 rounded-full text-[11px] font-bold bg-violet-100 text-violet-700 border border-violet-200 shadow-sm flex items-center space-x-1 active:scale-95 transition";
+        return;
+    }
+    bar.classList.remove('hidden');
+    document.getElementById('quickModeBtn').className = "px-2 py-1.5 rounded-full text-[11px] font-extrabold bg-violet-600 text-white shadow-sm flex items-center space-x-1 active:scale-95 transition";
+
+    const codes = Object.keys(state.shiftTypes);
+    btnContainer.innerHTML = codes.map(code => {
+        const st = state.shiftTypes[code];
+        const theme = PASTEL_COLOR_THEMES[st.theme] || PASTEL_COLOR_THEMES.yellow;
+        return `<button type="button" onclick="assignShiftQuick('${code}')" class="py-2 rounded-xl ${theme.bg} ${theme.text} border ${theme.border} font-extrabold text-xs active:scale-95">${st.short}</button>`;
+    }).join('') + `<button type="button" onclick="assignShiftQuick(null)" class="py-2 rounded-xl bg-stone-100 text-stone-600 border border-stone-200 font-bold text-xs"><i class="fa-solid fa-eraser"></i></button>`;
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+    const firstDay = new Date(state.currentYear, state.currentMonth, 1).getDay();
+    const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+    const prevDays = new Date(state.currentYear, state.currentMonth, 0).getDate();
+
+    // Previous month trailing days
+    for (let i = firstDay - 1; i >= 0; i--) {
+        grid.innerHTML += `<div class="h-20 p-1 opacity-25 flex justify-center"><span class="text-xs text-stone-400">${prevDays - i}</span></div>`;
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isSelected = dateKey === state.selectedDate;
+        const isToday = dateKey === todayKey;
+        const shiftCode = state.shifts[dateKey];
+        const shiftObj = shiftCode ? state.shiftTypes[shiftCode] : null;
+        const theme = shiftObj ? (PASTEL_COLOR_THEMES[shiftObj.theme] || PASTEL_COLOR_THEMES.yellow) : null;
+        const holiday = KOREAN_HOLIDAYS[dateKey];
+        const events = state.events[dateKey] || [];
+        const dayOfWeek = new Date(state.currentYear, state.currentMonth, day).getDay();
+
+        let dayNumColor = 'text-stone-700';
+        if (dayOfWeek === 0 || holiday) dayNumColor = 'text-rose-500 font-extrabold';
+        else if (dayOfWeek === 6) dayNumColor = 'text-sky-500 font-bold';
+
+        grid.innerHTML += `
+            <button type="button" onclick="selectDate('${dateKey}')" class="h-20 p-1 rounded-2xl flex flex-col items-center justify-between transition active:scale-95 ${isSelected ? 'bg-violet-100/70 ring-2 ring-violet-500 shadow-2xs' : 'hover:bg-stone-100'}">
+                <div class="w-6 h-5 rounded-full flex items-center justify-center text-xs font-extrabold ${isToday ? 'bg-stone-800 text-white' : dayNumColor}">${day}</div>
+                ${shiftObj ? `<div class="w-full px-1 py-0.5 rounded-lg ${theme.bg} ${theme.text} border ${theme.border} text-[10px] font-extrabold text-center truncate">${shiftObj.short}</div>` : '<div class="h-4"></div>'}
+                <div class="w-full text-[9px] font-bold text-rose-500 truncate text-center">${holiday || (events.length ? events[0].text : '')}</div>
+            </button>
+        `;
+    }
+}
+
+function renderSelectedDatePanel() {
+    const [y, m, d] = state.selectedDate.split('-');
+    const dateObj = new Date(y, m - 1, d);
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    document.getElementById('selectedDateTitle').textContent = `${Number(m)}월 ${Number(d)}일 (${dayNames[dateObj.getDay()]})`;
+    
+    const relTag = document.getElementById('selectedDateRelative');
+    if (state.selectedDate === todayKey) {
+        relTag.textContent = '오늘';
+        relTag.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700';
+    } else {
+        relTag.textContent = '';
+        relTag.className = 'hidden';
+    }
+
+    const holiday = KOREAN_HOLIDAYS[state.selectedDate];
+    const holBadge = document.getElementById('selectedHolidayBadge');
+    if (holiday) {
+        holBadge.textContent = holiday;
+        holBadge.classList.remove('hidden');
+    } else {
+        holBadge.classList.add('hidden');
+    }
+
+    const shiftCode = state.shifts[state.selectedDate];
+    const shiftObj = shiftCode ? state.shiftTypes[shiftCode] : null;
+    const badge = document.getElementById('selectedShiftBadge');
+
+    if (shiftObj) {
+        const theme = PASTEL_COLOR_THEMES[shiftObj.theme] || PASTEL_COLOR_THEMES.yellow;
+        badge.className = `px-3 py-2 rounded-xl text-xs font-extrabold border ${theme.bg} ${theme.text} ${theme.border} flex items-center space-x-1.5 active:scale-95 transition`;
+        badge.innerHTML = `<span>${shiftObj.name}</span><i class="fa-solid fa-chevron-down text-[10px]"></i>`;
+        document.getElementById('selectedShiftTime').textContent = shiftObj.time;
+    } else {
+        badge.className = "px-3 py-2 rounded-xl text-xs font-bold border border-stone-200 bg-stone-50 text-stone-500 flex items-center space-x-1.5 active:scale-95 transition";
+        badge.innerHTML = `<span>근무 선택</span><i class="fa-solid fa-chevron-down text-[10px]"></i>`;
+        document.getElementById('selectedShiftTime').textContent = '근무 미지정';
+    }
+
+    // Popover Shift List
+    document.getElementById('popoverShiftList').innerHTML = Object.keys(state.shiftTypes).map(code => {
+        const st = state.shiftTypes[code];
+        return `<button type="button" onclick="setSingleDayShift('${code}')" class="w-full px-2.5 py-2 rounded-xl text-left text-xs font-extrabold hover:bg-stone-100 flex justify-between items-center text-stone-700"><span>${st.name}</span><span class="px-2 py-0.5 rounded bg-stone-100">${st.short}</span></button>`;
+    }).join('') + `<div class="border-t border-stone-100 my-1"></div><button type="button" onclick="setSingleDayShift(null)" class="w-full px-2.5 py-1.5 text-xs text-rose-500 font-extrabold text-left rounded-xl hover:bg-rose-50">근무 지우기</button>`;
+
+    renderEvents();
+}
+
+function renderEvents() {
+    const list = document.getElementById('selectedDateEventList');
+    const evs = state.events[state.selectedDate] || [];
+    list.innerHTML = evs.map(e => `
+        <span class="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-rose-50 text-rose-600 border border-rose-200 flex items-center gap-1">
+            ${e.text} <button type="button" onclick="deleteEvent('${e.id}')" class="text-rose-400 hover:text-rose-700">&times;</button>
+        </span>
+    `).join('');
+}
+
+function renderTodos() {
+    const container = document.getElementById('todoListContainer');
+    const todos = state.todos[state.selectedDate] || [];
+    document.getElementById('dailyTodoCount').textContent = todos.filter(t => !t.completed).length;
+
+    if (!todos.length) {
+        container.innerHTML = `<p class="text-xs text-stone-400 text-center py-4 font-medium">등록된 할 일이 없습니다.</p>`;
+        return;
+    }
+
+    container.innerHTML = todos.map(t => `
+        <div class="flex items-center justify-between p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200/70 shadow-2xs">
+            <label class="flex items-center space-x-3 flex-1 cursor-pointer">
+                <input type="checkbox" class="pastel-checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
+                <span class="text-xs font-bold ${t.completed ? 'line-through text-stone-400' : 'text-stone-700'}">${t.text}</span>
+            </label>
+            <div class="flex items-center space-x-1">
+                <button type="button" onclick="startEditTodo('${t.id}')" class="p-1.5 text-stone-400 hover:text-violet-600"><i class="fa-solid fa-pen text-xs"></i></button>
+                <button type="button" onclick="deleteTodo('${t.id}')" class="p-1.5 text-stone-300 hover:text-rose-500"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Event Handlers
+window.changeMonth = (delta) => {
+    state.currentMonth += delta;
+    if (state.currentMonth > 11) { state.currentMonth = 0; state.currentYear++; }
+    else if (state.currentMonth < 0) { state.currentMonth = 11; state.currentYear--; }
+    renderAll();
+};
+
+window.goToToday = () => {
+    state.currentYear = todayObj.getFullYear();
+    state.currentMonth = todayObj.getMonth();
+    state.selectedDate = todayKey;
+    renderAll();
+};
+
+window.selectDate = (k) => {
+    state.selectedDate = k;
+    document.getElementById('dayShiftPopover').classList.add('hidden');
+    renderCalendar();
+    renderSelectedDatePanel();
+    renderTodos();
+};
+
+window.toggleQuickMode = () => {
+    state.isQuickInputMode = !state.isQuickInputMode;
+    renderQuickInputBar();
+};
+
+window.toggleAutoAdvance = (v) => {
+    state.autoAdvance = v;
+};
+
+window.assignShiftQuick = (code) => {
+    if (!code) delete state.shifts[state.selectedDate];
+    else state.shifts[state.selectedDate] = code;
+    saveLocalStorage();
+    if (state.autoAdvance) {
+        const parts = state.selectedDate.split('-').map(Number);
+        const d = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+        state.selectedDate = formatDateKey(d);
+        state.currentYear = d.getFullYear();
+        state.currentMonth = d.getMonth();
+    }
+    renderAll();
+};
+
+window.toggleDayShiftMenu = () => {
+    document.getElementById('dayShiftPopover').classList.toggle('hidden');
+};
+
+window.setSingleDayShift = (code) => {
+    if (!code) delete state.shifts[state.selectedDate];
+    else state.shifts[state.selectedDate] = code;
+    saveLocalStorage();
+    document.getElementById('dayShiftPopover').classList.add('hidden');
+    renderAll();
+};
+
+window.toggleEventForm = () => {
+    document.getElementById('eventFormBox').classList.toggle('hidden');
+};
+
+window.handleAddEvent = (e) => {
+    e.preventDefault();
+    const input = document.getElementById('eventInput');
+    if (!input.value.trim()) return;
+    if (!state.events[state.selectedDate]) state.events[state.selectedDate] = [];
+    state.events[state.selectedDate].push({ id: 'ev-' + Date.now(), text: input.value.trim() });
+    input.value = '';
+    saveLocalStorage();
+    document.getElementById('eventFormBox').classList.add('hidden');
+    renderAll();
+};
+
+window.deleteEvent = (id) => {
+    state.events[state.selectedDate] = state.events[state.selectedDate].filter(e => e.id !== id);
+    saveLocalStorage();
+    renderAll();
+};
+
+window.handleAddTodo = (e) => {
+    e.preventDefault();
+    const input = document.getElementById('todoInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!state.todos[state.selectedDate]) state.todos[state.selectedDate] = [];
+
+    if (state.editingTodoId) {
+        const item = state.todos[state.selectedDate].find(t => t.id === state.editingTodoId);
+        if (item) item.text = text;
+        state.editingTodoId = null;
+        document.getElementById('todoSubmitBtn').innerHTML = '<i class="fa-solid fa-plus text-sm"></i>';
+        showToast('할 일이 수정되었습니다.');
+    } else {
+        state.todos[state.selectedDate].push({ id: 'td-' + Date.now(), text, completed: false });
+        showToast('할 일이 추가되었습니다.');
+    }
+
+    input.value = '';
+    saveLocalStorage();
+    renderTodos();
+};
+
+window.startEditTodo = (id) => {
+    const list = state.todos[state.selectedDate] || [];
+    const item = list.find(t => t.id === id);
+    if (!item) return;
+    document.getElementById('todoInput').value = item.text;
+    document.getElementById('todoInput').focus();
+    state.editingTodoId = id;
+    document.getElementById('todoSubmitBtn').innerHTML = '<i class="fa-solid fa-check text-sm"></i>';
+};
+
+window.toggleTodo = (id) => {
+    const list = state.todos[state.selectedDate] || [];
+    const item = list.find(t => t.id === id);
+    if (item) item.completed = !item.completed;
+    saveLocalStorage();
+    renderTodos();
+};
+
+window.deleteTodo = (id) => {
+    state.todos[state.selectedDate] = (state.todos[state.selectedDate] || []).filter(t => t.id !== id);
+    saveLocalStorage();
+    renderTodos();
+};
+
+// Modal Controls
+window.openBackupModal = (tab = 'export') => {
+    document.getElementById('exportCodeTextarea').value = JSON.stringify({
+        version: 4,
+        shiftTypes: state.shiftTypes,
+        shifts: state.shifts,
+        events: state.events,
+        todos: state.todos
+    });
+    switchBackupTab(tab);
+    document.getElementById('backupModal').classList.remove('hidden');
+};
+window.closeBackupModal = () => { document.getElementById('backupModal').classList.add('hidden'); };
+
+window.switchBackupTab = (tab) => {
+    const expBtn = document.getElementById('tabBackupExport');
+    const impBtn = document.getElementById('tabBackupImport');
+    const expSec = document.getElementById('backupExportSection');
+    const impSec = document.getElementById('backupImportSection');
+    if (tab === 'export') {
+        expBtn.className = "py-2 rounded-xl text-xs font-extrabold bg-white text-violet-700 shadow-2xs transition";
+        impBtn.className = "py-2 rounded-xl text-xs font-bold text-stone-500 transition";
+        expSec.classList.remove('hidden');
+        impSec.classList.add('hidden');
+    } else {
+        impBtn.className = "py-2 rounded-xl text-xs font-extrabold bg-white text-violet-700 shadow-2xs transition";
+        expBtn.className = "py-2 rounded-xl text-xs font-bold text-stone-500 transition";
+        impSec.classList.remove('hidden');
+        expSec.classList.add('hidden');
+    }
+};
+
+window.copyBackupCode = async () => {
+    const code = document.getElementById('exportCodeTextarea').value;
+    try {
+        await navigator.clipboard.writeText(code);
+        showToast('백업 코드가 복사되었습니다!');
+    } catch (e) {
+        document.getElementById('exportCodeTextarea').select();
+        document.execCommand('copy');
+        showToast('백업 코드가 복사되었습니다!');
+    }
+};
+
+window.exportLocalFile = () => {
+    const data = JSON.stringify({
+        version: 4,
+        shiftTypes: state.shiftTypes,
+        shifts: state.shifts,
+        events: state.events,
+        todos: state.todos
+    }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `마이듀티_백업_${todayKey}.json`;
+    a.click();
+    showToast('백업 파일 다운로드가 시작되었습니다.');
+};
+
+window.restoreFromBackupCode = () => {
+    const val = document.getElementById('importCodeTextarea').value.trim();
+    if (!val) { showToast('코드를 입력해주세요.'); return; }
+    try {
+        const parsed = JSON.parse(val);
+        if (parsed.shiftTypes) state.shiftTypes = parsed.shiftTypes;
+        if (parsed.shifts) state.shifts = parsed.shifts;
+        if (parsed.events) state.events = parsed.events;
+        if (parsed.todos) state.todos = parsed.todos;
+        saveLocalStorage();
+        renderAll();
+        closeBackupModal();
+        showToast('백업이 성공적으로 복원되었습니다!');
+    } catch (e) {
+        showToast('올바른 백업 코드가 아닙니다.');
+    }
+};
+
+window.importLocalFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        try {
+            const parsed = JSON.parse(evt.target.result);
+            if (parsed.shiftTypes) state.shiftTypes = parsed.shiftTypes;
+            if (parsed.shifts) state.shifts = parsed.shifts;
+            if (parsed.events) state.events = parsed.events;
+            if (parsed.todos) state.todos = parsed.todos;
+            saveLocalStorage();
+            renderAll();
+            closeBackupModal();
+            showToast('파일을 불러왔습니다!');
+        } catch (err) {
+            showToast('올바른 JSON 파일이 아닙니다.');
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+};
+
+// 3-Shift Pattern Modal
+window.openPatternModal = () => {
+    const codes = Object.keys(state.shiftTypes);
+    const opts = codes.map(c => `<option value="${c}">${state.shiftTypes[c].name} (${state.shiftTypes[c].short})</option>`).join('');
+    document.getElementById('week1ShiftSelect').innerHTML = opts;
+    document.getElementById('week2ShiftSelect').innerHTML = opts;
+    document.getElementById('week3ShiftSelect').innerHTML = opts;
+
+    if (codes.length >= 3) {
+        document.getElementById('week1ShiftSelect').value = codes[0];
+        document.getElementById('week2ShiftSelect').value = codes[1];
+        document.getElementById('week3ShiftSelect').value = codes[2];
+    }
+
+    const startInput = document.getElementById('patternStartDate');
+    const endInput = document.getElementById('patternEndDate');
+    const nowStr = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-01`;
+    startInput.value = nowStr;
+    const endDate = new Date(state.currentYear, state.currentMonth + 3, 0);
+    endInput.value = formatDateKey(endDate);
+
+    document.getElementById('patternModal').classList.remove('hidden');
+};
+window.closePatternModal = () => { document.getElementById('patternModal').classList.add('hidden'); };
+
+window.setPatternRangeMonths = (months) => {
+    const startVal = document.getElementById('patternStartDate').value;
+    const base = startVal ? new Date(startVal) : new Date();
+    const end = new Date(base.getFullYear(), base.getMonth() + months, base.getDate());
+    document.getElementById('patternEndDate').value = formatDateKey(end);
+};
+
+window.applyShiftPattern = () => {
+    const w1 = document.getElementById('week1ShiftSelect').value;
+    const w2 = document.getElementById('week2ShiftSelect').value;
+    const w3 = document.getElementById('week3ShiftSelect').value;
+    const rule = document.getElementById('weeklyRuleSelect').value;
+
+    const startStr = document.getElementById('patternStartDate').value;
+    const endStr = document.getElementById('patternEndDate').value;
+    if (!startStr || !endStr) { showToast('적용 기간을 설정해주세요.'); return; }
+
+    let cur = new Date(startStr);
+    const end = new Date(endStr);
+    const weeklyCycle = [w1, w1, w1, w1, w1, w2, w2]; // Default Mon-Fri w1, Sat-Sun w2 (example)
+
+    // Calculate week difference from start date
+    const oneDay = 24 * 60 * 60 * 1000;
+    while (cur <= end) {
+        const diffDays = Math.round((cur - new Date(startStr)) / oneDay);
+        const weekIndex = Math.floor(diffDays / 7) % 3;
+        const dayOfWeek = cur.getDay(); // 0: Sun, 1: Mon ... 6: Sat
+
+        let targetShift = w1;
+        if (weekIndex === 1) targetShift = w2;
+        else if (weekIndex === 2) targetShift = w3;
+
+        if (rule === 'mon_fri_off') {
+            if (dayOfWeek === 0 || dayOfWeek === 6) targetShift = 'O';
+        } else if (rule === 'mon_sat_off') {
+            if (dayOfWeek === 0) targetShift = 'O';
+        }
+
+        state.shifts[formatDateKey(cur)] = targetShift;
+        cur.setDate(cur.getDate() + 1);
+    }
+
+    saveLocalStorage();
+    renderAll();
+    closePatternModal();
+    showToast('3교대 패턴이 달력에 성공적으로 적용되었습니다!');
+};
+
+// Settings Modal & Shift Types Editor
+window.openSettingsModal = () => {
+    renderShiftTypesSettingsList();
+    document.getElementById('settingsModal').classList.remove('hidden');
+};
+window.closeSettingsModal = () => { document.getElementById('settingsModal').classList.add('hidden'); };
+
+function renderShiftTypesSettingsList() {
+    const container = document.getElementById('shiftSettingsList');
+    const keys = Object.keys(state.shiftTypes);
+    document.getElementById('shiftTypeCountLabel').textContent = keys.length;
+
+    // Populate theme select
+    const themeSelect = document.getElementById('shiftThemeInput');
+    themeSelect.innerHTML = Object.keys(PASTEL_COLOR_THEMES).map(k => `<option value="${k}">${PASTEL_COLOR_THEMES[k].label}</option>`).join('');
+
+    container.innerHTML = keys.map(code => {
+        const st = state.shiftTypes[code];
+        const theme = PASTEL_COLOR_THEMES[st.theme] || PASTEL_COLOR_THEMES.yellow;
+        return `
+            <div class="p-2.5 rounded-2xl bg-[#FAF8F5] border border-stone-200/80 flex items-center justify-between gap-2">
+                <div class="flex items-center space-x-2">
+                    <span class="w-7 h-7 rounded-xl ${theme.bg} ${theme.text} font-extrabold flex items-center justify-center text-xs border ${theme.border}">${st.short}</span>
+                    <div>
+                        <b class="text-xs text-stone-800">${st.name}</b>
+                        <p class="text-[10px] text-stone-400">${st.time}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button type="button" onclick="editShiftType('${code}')" class="px-2 py-1 rounded-lg bg-white border border-stone-200 text-stone-600 text-[10px] font-bold">수정</button>
+                    ${keys.length > 3 ? `<button type="button" onclick="deleteShiftType('${code}')" class="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-[10px] font-bold">삭제</button>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.resetShiftTypeForm = () => {
+    document.getElementById('editShiftOriginalCode').value = '';
+    document.getElementById('shiftShortInput').value = '';
+    document.getElementById('shiftNameInput').value = '';
+    document.getElementById('shiftTimeInput').value = '';
+    document.getElementById('shiftThemeInput').value = 'yellow';
+};
+
+window.editShiftType = (code) => {
+    const st = state.shiftTypes[code];
+    if (!st) return;
+    document.getElementById('editShiftOriginalCode').value = code;
+    document.getElementById('shiftShortInput').value = st.short;
+    document.getElementById('shiftNameInput').value = st.name;
+    document.getElementById('shiftTimeInput').value = st.time;
+    document.getElementById('shiftThemeInput').value = st.theme;
+};
+
+window.handleSaveShiftType = (e) => {
+    e.preventDefault();
+    const origCode = document.getElementById('editShiftOriginalCode').value;
+    const short = document.getElementById('shiftShortInput').value.trim();
+    const name = document.getElementById('shiftNameInput').value.trim();
+    const time = document.getElementById('shiftTimeInput').value.trim();
+    const theme = document.getElementById('shiftThemeInput').value;
+
+    const newCode = short.toUpperCase();
+    if (origCode && origCode !== newCode) {
+        delete state.shiftTypes[origCode];
+    }
+    state.shiftTypes[newCode] = { short, name, time, theme };
+    saveLocalStorage();
+    renderShiftTypesSettingsList();
+    renderAll();
+    resetShiftTypeForm();
+    showToast('근무 유형이 저장되었습니다.');
+};
+
+window.deleteShiftType = (code) => {
+    delete state.shiftTypes[code];
+    saveLocalStorage();
+    renderShiftTypesSettingsList();
+    renderAll();
+    showToast('근무 유형이 삭제되었습니다.');
+};
+
+window.openResetConfirmModal = () => { document.getElementById('confirmModal').classList.remove('hidden'); };
+window.closeResetConfirmModal = () => { document.getElementById('confirmModal').classList.add('hidden'); };
+window.confirmResetAllData = () => {
+    state.shiftTypes = JSON.parse(JSON.stringify(DEFAULT_SHIFT_TYPES));
+    state.shifts = {};
+    state.events = {};
+    state.todos = {};
+    saveLocalStorage();
+    closeResetConfirmModal();
+    closeSettingsModal();
+    renderAll();
+    showToast('모든 데이터가 초기화되었습니다.');
+};
+
+// App Guide Modal & PWA
+window.openAppGuideModal = () => { document.getElementById('appGuideModal').classList.remove('hidden'); };
+window.closeAppGuideModal = () => { document.getElementById('appGuideModal').classList.add('hidden'); };
+
+let deferredPwaPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPwaPrompt = e;
+    const tag = document.getElementById('pwaInstallStatusTag');
+    if (tag) {
+        tag.textContent = '설치 준비완료!';
+        tag.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900';
+    }
+});
+
+window.triggerNativePwaInstall = async () => {
+    if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        const { outcome } = await deferredPwaPrompt.userChoice;
+        if (outcome === 'accepted') showToast('앱이 설치되었습니다!');
+        deferredPwaPrompt = null;
+    } else {
+        showToast('우측 상단 메뉴(⋮ 또는 ⋯)에서 [브라우저로 열기] 후 [홈 화면에 추가]를 눌러주세요.');
+    }
+};
+
+// Colleague Sharing (Local simulation & comparison)
+window.openTeamModal = () => {
+    document.getElementById('myNicknameInput').value = state.nickname || '';
+    document.getElementById('myTeamNameInput').value = state.teamName || '';
+    renderColleaguesList();
+    document.getElementById('teamModal').classList.remove('hidden');
+};
+window.closeTeamModal = () => { document.getElementById('teamModal').classList.add('hidden'); };
+
+window.publishMyScheduleLocally = () => {
+    const nick = document.getElementById('myNicknameInput').value.trim();
+    const team = document.getElementById('myTeamNameInput').value.trim();
+    if (!nick) { showToast('이름을 입력해주세요.'); return; }
+    state.nickname = nick;
+    state.teamName = team;
+    saveLocalStorage();
+    showToast('내 근무표 정보가 저장되었습니다.');
+};
+
+function renderColleaguesList() {
+    const container = document.getElementById('colleaguesListContainer');
+    // Sample dummy colleague for immediate testing
+    container.innerHTML = `
+        <div class="p-3 rounded-2xl bg-[#FAF8F5] border border-stone-200 flex items-center justify-between">
+            <div>
+                <b class="text-xs text-stone-800">김동료 선생님 <span class="text-[10px] bg-stone-200 px-1.5 py-0.5 rounded">병동 B조</span></b>
+                <p class="text-[10px] text-stone-400 mt-0.5">이번 달 오프일 8일</p>
+            </div>
+            <button type="button" onclick="showColleagueMatch()" class="px-2.5 py-1.5 rounded-xl bg-violet-100 text-violet-700 text-xs font-extrabold">동반 오프 확인</button>
+        </div>
+    `;
+}
+
+window.showColleagueMatch = () => {
+    document.getElementById('matchingOffDaysBox').innerHTML = `<div class="p-2 rounded-xl bg-emerald-100 text-emerald-900 font-bold">🎉 김동료 선생님과 이번 달 <b>12일, 18일, 25일</b> 오프(Off)가 겹칩니다!</div>`;
+};
+
+// Initialize PWA manifest
+function setupManifest() {
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="42" fill="#8B5CF6"/><text x="96" y="122" font-family="sans-serif" font-size="84" font-weight="bold" fill="#ffffff" text-anchor="middle">듀티</text></svg>`;
+    const iconUrl = "data:image/svg+xml;utf8," + encodeURIComponent(svgIcon);
+    const manifest = {
+        name: "마이듀티 & 투두",
+        short_name: "마이듀티",
+        start_url: location.href,
+        display: "standalone",
+        background_color: "#FAF8F5",
+        theme_color: "#FAF8F5",
+        icons: [{ src: iconUrl, sizes: "192x192", type: "image/svg+xml" }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+    document.getElementById('pwaManifestLink').setAttribute('href', URL.createObjectURL(blob));
+}
+
+setupManifest();
+initStarterSample();
+renderAll();
+</script>
+</body>
+</html>
